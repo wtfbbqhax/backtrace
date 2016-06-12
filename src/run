@@ -1,0 +1,28 @@
+#!/bin/bash
+# run.sh by Victor Roemer 
+# Wrapper script for the backtrace script
+
+BOXES=('appliance1' 'appliance2')
+
+FROM="$(hostname)@localhost"
+SERVER="<SOME OPEN SMTP SERVER>"
+TO="<MY EMAIL ADDRESS>"
+MSG="CRASH REPORT `date +%m-%d-%y`"
+
+TMPDIR=/tmp
+TEMP=$(tempfile)
+
+for box in ${BOXES[@]}; do 
+    ssh -qq root@$box < /opt/segfaults/backtrace >> $TEMP 2> /dev/null
+done
+
+# [[ -s ... ]] true if file exists and has a size > 0
+if [[ -s $TEMP ]]; then
+    echo "Sad panda :("
+    cat $TEMP
+    smtpclient -s "$MSG" -f $FROM -S $SERVER "$TO" < $TEMP
+else
+    echo "No crashes found, yay!"
+fi
+
+rm -f $TEMP
